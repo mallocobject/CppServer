@@ -6,6 +6,7 @@
 #include "thread_pool.h"
 #include <functional>
 #include <unordered_map>
+#include <utility>
 
 namespace WS
 {
@@ -20,12 +21,12 @@ Server::Server(EventLoop *loop) : _main_reactor(loop), _acceptor(nullptr), _th_p
     _th_pool = new ThreadPool(size);
     for (int i = 0; i < size; i++)
     {
-        _vec_sub_reactor.push_back(new EventLoop);
+        _vec_sub_reactors.push_back(new EventLoop);
     }
 
     for (int i = 0; i < size; i++)
     {
-        std::function<void()> sub_loop = std::bind(&EventLoop::loop, _vec_sub_reactor[i]);
+        std::function<void()> sub_loop = std::bind(&EventLoop::loop, _vec_sub_reactors[i]);
         _th_pool->addTask(sub_loop);
     }
 }
@@ -41,15 +42,26 @@ Server::~Server()
     {
         delete p.second;
     }
-    _map_conns.clear();
+
+    for (auto sub_reactor : _vec_sub_reactors)
+    {
+        delete sub_reactor;
+    }
+
+    if (_th_pool != nullptr)
+    {
+        delete _th_pool;
+        _th_pool = nullptr;
+    }
 }
 
 void Server::handleNewConn(Socket *sock)
 {
-    int random = sock->getFd() % _vec_sub_reactor.size();
-    Connection *conn = new Connection(_vec_sub_reactor[random], sock);
+    int random = sock->getFd() % _vec_sub_reactors.size();
+    Connection *conn = new Connection(_vec_sub_reactors[random], sock);
     std::function<void(Socket *)> del_cb = std::bind(&Server::delConn, this, std::placeholders::_1);
     conn->setDelConnCallback(del_cb);
+    conn->setOnConnCallback(_on_connect_cb);
     _map_conns[sock->getFd()] = conn;
 }
 
@@ -63,6 +75,11 @@ void Server::delConn(Socket *sock)
         delete conn;
         conn = nullptr;
     }
+}
+
+void Server::onConnect(std::function<void(Connection *)> slot)
+{
+    _on_connect_cb = std::move(slot);
 }
 
 } // namespace WS

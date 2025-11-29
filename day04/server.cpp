@@ -1,5 +1,6 @@
 #include "server.h"
 #include "acceptor.h"
+#include "connection.h"
 #include "event_loop.h"
 #include "src/channel.h"
 #include <cstdio>
@@ -13,6 +14,10 @@ int main()
 {
     EventLoop *loop = new EventLoop;
     Server *server = new Server(loop);
+    server->onConnect([](Connection *conn) {
+        printf("ok\n");
+        conn->echo();
+    });
 
     loop->loop();
 
