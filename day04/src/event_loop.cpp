@@ -5,6 +5,10 @@
 
 namespace WS
 {
+EventLoop::EventLoop() : _ep(new Epoll), _quit(false)
+{
+}
+
 EventLoop::~EventLoop()
 {
     if (_ep != nullptr)

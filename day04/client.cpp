@@ -1,6 +1,8 @@
+#include "buffer.h"
 #include "src/inet_addr.h"
 #include "src/socket.h"
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <string>
@@ -15,41 +17,44 @@ using namespace WS;
 int main()
 {
 
-    Socket *sock = new Socket;
-    InetAddr *addr = new InetAddr("127.0.0.1", 8888);
+    Socket sock;
+    InetAddr addr("127.0.0.1", 8888);
 
-    sock->connect(addr);
+    sock.connect(&addr);
 
-    char buf[BUFF_SIZE + 1];
-    size_t nbytes = BUFF_SIZE;
+    char buf[BUFF_SIZE];
+
+    Buffer send_buf;
+    Buffer recv_buf;
 
     while (true)
     {
-        bzero(buf, nbytes);
-
         printf("client: ");
-        scanf("%s", buf);
+        send_buf.getLine();
 
-        sock->write(buf, strlen(buf));
+        sock.write(send_buf.c_str(), send_buf.size());
 
-        ssize_t bytes_read = sock->read(buf, nbytes);
-        if (bytes_read > 0)
+        int already_read = 0;
+
+        while (true)
         {
-            buf[bytes_read] = '\0';
-            printf("server: %s\n", buf);
+            ssize_t bytes_read = sock.read(buf, sizeof(buf));
+            if (bytes_read > 0)
+            {
+                recv_buf.append(buf, bytes_read);
+                already_read += bytes_read;
+            }
+            else if (bytes_read == 0)
+            {
+                printf("server closed connection\n");
+                exit(EXIT_SUCCESS);
+            }
+            if (already_read >= send_buf.size())
+            {
+                printf("server: %s\n", recv_buf.c_str());
+                break;
+            }
         }
-        else if (bytes_read == 0)
-        {
-            printf("server closed connection\n");
-            return 0;
-        }
-        else
-        {
-            perror("read");
-            return -1;
-        }
+        recv_buf.clear();
     }
-
-    delete addr;
-    delete sock;
 }

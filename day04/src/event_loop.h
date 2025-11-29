@@ -13,10 +13,7 @@ class EventLoop
     bool _quit;
 
   public:
-    EventLoop() = delete;
-    EventLoop(Epoll *ep) : _ep(ep), _quit(false)
-    {
-    }
+    EventLoop();
     ~EventLoop();
     void loop();
     void updateChannel(Channel *ch);

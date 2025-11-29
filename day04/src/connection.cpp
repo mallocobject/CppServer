@@ -1,4 +1,5 @@
 #include "connection.h"
+#include "buffer.h"
 #include "channel.h"
 #include "socket.h"
 #include "utils.h"
@@ -11,12 +12,14 @@
 namespace WS
 {
 
-Connection::Connection(EventLoop *loop, Socket *sock) : _loop(loop), _sock(sock), _ch(nullptr)
+Connection::Connection(EventLoop *loop, Socket *sock)
+    : _loop(loop), _sock(sock), _ch(nullptr), _buf(nullptr)
 {
     _ch = new Channel(loop, sock->getFd());
     std::function<void()> cb = std::bind(&Connection::echo, this, sock);
     _ch->setCallback(cb);
     _ch->enableReading();
+    _buf = new Buffer;
 }
 
 Connection::~Connection()
@@ -35,32 +38,30 @@ Connection::~Connection()
 
 void Connection::echo(Socket *sock)
 {
-    char buf[BUFF_SIZE + 1];
-    size_t nbytes = BUFF_SIZE;
+    char buf[BUFF_SIZE];
     while (true)
     {
-        bzero(buf, sizeof(buf));
-        ssize_t bytes_read = sock->read(buf, nbytes);
+        ssize_t bytes_read = sock->read(buf, sizeof(buf));
         if (bytes_read > 0)
         {
-            buf[bytes_read] = 0;
-            printf("messgae from client fd: %d: %s\n", sock->getFd(), buf);
-            sock->write(buf, bytes_read);
+            _buf->append(buf, bytes_read);
         }
-        else if (bytes_read == -1 && errno == EINTR)
+        else if (bytes_read == 0)
+        {
+            printf("EOF, client(%d) disconnected\n", sock->getFd());
+            _del_cb(sock);
+            break;
+        }
+        else if (errno == EINTR)
         {
             printf("continue reading");
             continue;
         }
-        else if (bytes_read == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+        else if (errno == EAGAIN || errno == EWOULDBLOCK)
         {
-            printf("finish reading once\n");
-            break;
-        }
-        else if (bytes_read == 0)
-        {
-            printf("EOF, client fd: %d disconnected\n", sock->getFd());
-            _del_cb(sock);
+            printf("client(%d): %s\n", sock->getFd(), _buf->c_str());
+            sock->write(_buf->c_str(), _buf->size());
+            _buf->clear();
             break;
         }
     }

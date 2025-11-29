@@ -2,7 +2,6 @@
 #include "acceptor.h"
 #include "event_loop.h"
 #include "src/channel.h"
-#include "src/epoll.h"
 #include <cstdio>
 
 #define MAX_EVENTS 1024
@@ -12,7 +11,7 @@ using namespace WS;
 
 int main()
 {
-    EventLoop *loop = new EventLoop(new Epoll);
+    EventLoop *loop = new EventLoop;
     Server *server = new Server(loop);
 
     loop->loop();

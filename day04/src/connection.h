@@ -7,6 +7,7 @@ namespace WS
 class EventLoop;
 class Channel;
 class Socket;
+class Buffer;
 class Connection
 {
   protected:
@@ -14,6 +15,7 @@ class Connection
     Channel *_ch;
     Socket *_sock;
     std::function<void(Socket *)> _del_cb;
+    Buffer *_buf;
 
   public:
     Connection() = delete;
