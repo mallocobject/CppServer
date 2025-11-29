@@ -1,13 +1,21 @@
 #include "channel.h"
 #include "epoll.h"
 #include "event_loop.h"
+#include <sys/epoll.h>
 
 namespace WS
 {
 
-void Channel::enableReading()
+void Channel::enableRead(bool is_server)
 {
-    _op = EPOLLIN | EPOLLET;
+    if (is_server)
+    {
+        _op = EPOLLIN | EPOLLPRI;
+    }
+    else
+    {
+        _op = EPOLLIN | EPOLLET;
+    }
     _loop->updateChannel(this);
 }
 

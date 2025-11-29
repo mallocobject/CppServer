@@ -15,13 +15,13 @@ Acceptor::Acceptor(EventLoop *loop) : _loop(loop)
     _sock = new Socket;
     InetAddr addr("127.0.0.1", 8888);
     _sock->bind(&addr);
+    // _sock->set_non_blocking();
     _sock->listen();
-    _sock->set_non_blocking();
 
     _ch = new Channel(loop, _sock->getFd());
     std::function<void()> cb = std::bind(&Acceptor::acceptConn, this);
     _ch->setCallback(cb);
-    _ch->enableReading();
+    _ch->enableRead(true);
 }
 
 Acceptor::~Acceptor()

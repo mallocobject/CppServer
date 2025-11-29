@@ -1,5 +1,4 @@
 #include "thread_pool.h"
-#include "utils.h"
 #include <functional>
 #include <mutex>
 #include <thread>
@@ -21,7 +20,7 @@ ThreadPool::ThreadPool(size_t num_ths) : _stop(false)
                     {
                         return;
                     }
-                    task = _que_tasks.back();
+                    task = _que_tasks.front();
                     _que_tasks.pop();
                 }
                 task();
@@ -36,7 +35,7 @@ ThreadPool::~ThreadPool()
         std::unique_lock<std::mutex> lock(_mtx);
         _stop = true;
     }
-    _cv.notify_one();
+    _cv.notify_all();
     for (std::thread &th : _vec_ths)
     {
         if (th.joinable())
@@ -44,16 +43,6 @@ ThreadPool::~ThreadPool()
             th.join();
         }
     }
-}
-
-void ThreadPool::addTask(std::function<void()> task)
-{
-    {
-        std::lock_guard<std::mutex> lock(_mtx);
-        erro(_stop, "ThreadPoll already stop, cannot add task any more");
-        _que_tasks.push(task);
-    }
-    _cv.notify_one();
 }
 
 } // namespace WS

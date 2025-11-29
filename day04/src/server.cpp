@@ -3,17 +3,31 @@
 #include "connection.h"
 #include "event_loop.h"
 #include "socket.h"
+#include "thread_pool.h"
 #include <functional>
 #include <unordered_map>
 
 namespace WS
 {
-Server::Server(EventLoop *loop) : _loop(loop), _acceptor(nullptr)
+Server::Server(EventLoop *loop) : _main_reactor(loop), _acceptor(nullptr), _th_pool(nullptr)
 {
     _acceptor = new Acceptor(loop);
     std::function<void(Socket *)> cb =
         std::bind(&Server::handleNewConn, this, std::placeholders::_1);
     _acceptor->setNewConnCallback(cb);
+
+    int size = std::thread::hardware_concurrency();
+    _th_pool = new ThreadPool(size);
+    for (int i = 0; i < size; i++)
+    {
+        _vec_sub_reactor.push_back(new EventLoop);
+    }
+
+    for (int i = 0; i < size; i++)
+    {
+        std::function<void()> sub_loop = std::bind(&EventLoop::loop, _vec_sub_reactor[i]);
+        _th_pool->addTask(sub_loop);
+    }
 }
 
 Server::~Server()
@@ -32,7 +46,8 @@ Server::~Server()
 
 void Server::handleNewConn(Socket *sock)
 {
-    Connection *conn = new Connection(_loop, sock);
+    int random = sock->getFd() % _vec_sub_reactor.size();
+    Connection *conn = new Connection(_vec_sub_reactor[random], sock);
     std::function<void(Socket *)> del_cb = std::bind(&Server::delConn, this, std::placeholders::_1);
     conn->setDelConnCallback(del_cb);
     _map_conns[sock->getFd()] = conn;

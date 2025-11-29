@@ -18,7 +18,7 @@ Connection::Connection(EventLoop *loop, Socket *sock)
     _ch = new Channel(loop, sock->getFd());
     std::function<void()> cb = std::bind(&Connection::echo, this, sock);
     _ch->setCallback(cb);
-    _ch->enableReading();
+    _ch->enableRead();
     _buf = new Buffer;
 }
 

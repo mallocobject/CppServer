@@ -6,13 +6,11 @@ namespace WS
 
 class Epoll;
 class Channel;
-class ThreadPool;
 class EventLoop
 {
   protected:
     Epoll *_ep;
     bool _quit;
-    ThreadPool *_th_pool;
 
   public:
     EventLoop();

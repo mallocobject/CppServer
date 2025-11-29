@@ -34,6 +34,12 @@ class Buffer
         _buf.clear();
         std::getline(std::cin, _buf);
     }
+
+    void setBuf(const char *c_str)
+    {
+        _buf.clear();
+        _buf.append(c_str);
+    }
 };
 } // namespace WS
 
