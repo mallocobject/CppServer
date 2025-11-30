@@ -9,7 +9,7 @@ ThreadPool::ThreadPool(size_t num_ths) : _stop(false)
 {
     for (int i = 0; i < num_ths; i++)
     {
-        _vec_ths.push_back(std::thread([this]() {
+        _vec_ths.emplace_back(std::thread([this]() {
             while (true)
             {
                 std::function<void()> task;

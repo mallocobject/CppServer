@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.25)
 
 project(WebServer)
 
-aux_source_directory(src SRC_LIST)
+aux_source_directory(tcp SRC_LIST)
 
-include_directories(src)
+include_directories(tcp)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

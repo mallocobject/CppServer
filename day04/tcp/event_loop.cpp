@@ -1,27 +1,25 @@
 #include "event_loop.h"
 #include "channel.h"
 #include "epoll.h"
+#include <memory>
 #include <vector>
 
 namespace WS
 {
-EventLoop::EventLoop() : _ep(new Epoll), _quit(false)
+EventLoop::EventLoop()
 {
+    _ep = std::make_unique<Epoll>();
 }
 
 EventLoop::~EventLoop()
 {
-    if (_ep != nullptr)
-    {
-        delete _ep;
-        _ep = nullptr;
-    }
 }
+
 void EventLoop::loop()
 {
-    while (!_quit)
+    while (true)
     {
-        std::vector<Channel *> chs = _ep->wait();
+        std::vector<Channel *> chs = _ep->poll();
         for (Channel *&ch : chs)
         {
             ch->handleEvent();
@@ -31,5 +29,10 @@ void EventLoop::loop()
 void EventLoop::updateChannel(Channel *ch)
 {
     _ep->updateChannel(ch);
+}
+
+void EventLoop::deleteChannel(Channel *ch)
+{
+    _ep->deleteChannel(ch);
 }
 } // namespace WS

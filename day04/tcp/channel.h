@@ -1,0 +1,86 @@
+#ifndef __CHANNEL_H__
+#define __CHANNEL_H__
+
+#include "common.h"
+#include "utils.h"
+#include <cstdint>
+#include <functional>
+#include <unistd.h>
+namespace WS
+{
+class EventLoop;
+class Channel
+{
+  protected:
+    EventLoop *_loop;
+    int _fd;
+    uint32_t _listen_events;
+    uint32_t _ready_events;
+    bool _in_epoll;
+    std::function<void()> _read_callback;
+    std::function<void()> _write_callback;
+
+  public:
+    DISALLOW_DEFAULT(Channel)
+    DISALLOW_COPY_AND_MOVE(Channel)
+
+    Channel(int fd, EventLoop *loop)
+        : _fd(fd), _loop(loop), _listen_events(0), _ready_events(0), _in_epoll(false)
+    {
+    }
+
+    ~Channel()
+    {
+        if (_fd != -1)
+        {
+            erro(::close(_fd) == -1, "close failed");
+            _fd = -1;
+        }
+    }
+
+    void handleEvent();
+    void enableRead(bool is_ET = true);
+    void enableWrite();
+    void disableWrite();
+
+    int getFd() const
+    {
+        return _fd;
+    }
+
+    uint32_t getListenEvents() const
+    {
+        return _listen_events;
+    }
+
+    uint32_t getReadyEvents() const
+    {
+        return _ready_events;
+    }
+
+    bool inEpoll() const
+    {
+        return _in_epoll;
+    }
+
+    void setInEpoll(bool in_epoll)
+    {
+        _in_epoll = in_epoll;
+    }
+
+    void setReadyEvents(uint32_t ev);
+
+    void setReadCallback(const std::function<void()> &cb)
+    {
+
+        _read_callback = std::move(cb);
+    }
+    void setWriteCallback(const std::function<void()> &cb)
+    {
+
+        _write_callback = std::move(cb);
+    }
+};
+} // namespace WS
+
+#endif

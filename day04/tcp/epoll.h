@@ -1,6 +1,7 @@
 #ifndef __EPOLL_H__
 #define __EPOLL_H__
 
+#include "common.h"
 #include <fcntl.h>
 #include <sys/epoll.h>
 #include <vector>
@@ -11,25 +12,19 @@ class Epoll
 {
   protected:
     int _epfd;
-    epoll_event _ev;
     epoll_event *_events;
     std::vector<Channel *> _vec_chs;
 
   public:
+    DISALLOW_COPY_AND_MOVE(Epoll)
+
     Epoll();
     ~Epoll();
 
-    void addFd(int fd, uint32_t op);
-
-    void modFd(int fd, uint32_t op);
-
-    void delFd(int fd, uint32_t op);
-
-    std::vector<Channel *> wait();
+    std::vector<Channel *> poll(int timeout = -1);
 
     void updateChannel(Channel *ch);
-
-  protected:
+    void deleteChannel(Channel *ch);
 };
 
 } // namespace WS

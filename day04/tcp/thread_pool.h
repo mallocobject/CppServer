@@ -1,7 +1,9 @@
 #ifndef __THREAD_POOL_H__
 #define __THREAD_POOL_H__
 
+#include "common.h"
 #include "utils.h"
+#include <atomic>
 #include <condition_variable>
 #include <cstddef>
 #include <functional>
@@ -23,9 +25,12 @@ class ThreadPool
     std::queue<std::function<void()>> _que_tasks;
     std::mutex _mtx;
     std::condition_variable _cv;
-    bool _stop;
+    std::atomic<bool> _stop;
 
   public:
+    DISALLOW_DEFAULT(ThreadPool)
+    DISALLOW_COPY_AND_MOVE(ThreadPool)
+
     ThreadPool(size_t num_ths = std::thread::hardware_concurrency());
     ~ThreadPool();
 

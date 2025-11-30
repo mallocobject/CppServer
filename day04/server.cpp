@@ -1,9 +1,5 @@
-#include "server.h"
-#include "acceptor.h"
-#include "connection.h"
-#include "event_loop.h"
-#include "socket.h"
-#include "src/channel.h"
+#include "tcp_connection.h"
+#include "tcp_server.h"
 #include <cstdio>
 
 #define MAX_EVENTS 1024
@@ -13,26 +9,18 @@ using namespace WS;
 
 int main()
 {
-    EventLoop *loop = new EventLoop;
-    Server *server = new Server(loop);
-    server->onConnect([](Connection *conn) {
-        conn->read();
-        if (conn->getState() == Connection::State::Closed)
+    TcpServer *tcp_server = new TcpServer("127.0.0.1", 8888);
+    tcp_server->setMessageCallback([](TcpConnection *conn) {
+        if (conn->State() == TcpConnection::State::Connected)
         {
-            conn->close();
-        }
-        else if (conn->getState() == Connection::State::Connected)
-        {
-            printf("Client(%d): %s\n", conn->getSocket()->getFd(), conn->getMsg());
-            conn->setMsg(conn->getMsg());
-            conn->write();
+            printf("Client(%d): %s\n", conn->getFd(), conn->getMsg());
+            conn->send(conn->getMsg());
         }
     });
 
-    loop->loop();
+    tcp_server->start();
 
-    delete server;
-    delete loop;
+    delete tcp_server;
 
     return 0;
 }

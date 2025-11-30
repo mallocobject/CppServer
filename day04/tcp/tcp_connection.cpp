@@ -1,13 +1,17 @@
-#include "connection.h"
+#include "tcp_connection.h"
 #include "buffer.h"
 #include "channel.h"
-#include "socket.h"
 // #include "utils.h"
+#include <arpa/inet.h>
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
 #include <functional>
+#include <iterator>
+#include <memory>
+#include <netinet/in.h>
 #include <strings.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #define BUFF_SIZE 1024
@@ -15,51 +19,33 @@
 namespace WS
 {
 
-Connection::Connection(EventLoop *loop, Socket *sock, bool is_non_blocking)
-    : _loop(loop), _sock(sock), _ch(nullptr), _del_cb(nullptr), _buf_recv(new Buffer),
-      _buf_send(new Buffer), _state(State::Connected), _is_non_blocking(is_non_blocking)
+TcpConnection::TcpConnection(EventLoop *loop, int conn_fd, int conn_id, bool is_non_blocking)
+    : _loop(loop), _conn_fd(conn_fd), _conn_id(conn_id), _state(State::Connected),
+      _is_non_blocking(is_non_blocking)
 {
     if (loop != nullptr)
     {
-        _ch = new Channel(loop, sock->getFd());
+        _ch = std::make_unique<Channel>(conn_fd, _loop);
+        _ch->setReadCallback(std::bind(&TcpConnection::handleMessage, this));
         _ch->enableRead();
     }
+    _buf_recv = std::make_unique<Buffer>();
+    _buf_send = std::make_unique<Buffer>();
 }
 
-Connection::~Connection()
+TcpConnection::~TcpConnection()
 {
-    if (_sock != nullptr)
-    {
-        delete _sock;
-        _sock = nullptr;
-    }
-    if (_loop != nullptr && _ch != nullptr)
-    {
-        delete _ch;
-        _ch = nullptr;
-    }
-    if (_buf_send != nullptr)
-    {
-        delete _buf_send;
-        _buf_send = nullptr;
-    }
-    if (_buf_recv != nullptr)
-    {
-        delete _buf_recv;
-        _buf_recv = nullptr;
-    }
+    erro(::close(_conn_fd) == -1, "close failed");
 }
 
-void Connection::setOnConnCallback(std::function<void(Connection *)> on_connect_cb)
+void TcpConnection::send(const char *msg)
 {
-    // _on_connect_cb = std::move(on_connect_cb);
-
-    _ch->setCallback([this, on_connect_cb]() { on_connect_cb(this); });
+    setMsg(msg);
+    write();
 }
 
-void Connection::read()
+void TcpConnection::read()
 {
-    assert(_state == State::Connected);
     _buf_recv->clear();
     if (_is_non_blocking)
     {
@@ -71,9 +57,8 @@ void Connection::read()
     }
 }
 
-void Connection::write()
+void TcpConnection::write()
 {
-    assert(_state == State::Connected);
     if (_is_non_blocking)
     {
         writeNonBlocking();
@@ -85,27 +70,26 @@ void Connection::write()
     _buf_send->clear();
 }
 
-void Connection::typeLineSendBuffer()
+void TcpConnection::typeLineSendBuffer()
 {
     _buf_send->getLine();
 }
 
-const char *Connection::getMsg() const
+const char *TcpConnection::getMsg() const
 {
     return _buf_recv->c_str();
 }
 
-void Connection::setMsg(const char *msg)
+void TcpConnection::setMsg(const char *msg)
 {
     _buf_send->setBuf(msg);
 }
 
-void Connection::readBlocking()
+void TcpConnection::readBlocking()
 {
-    int sockfd = _sock->getFd();
     char buf[BUFF_SIZE];
 
-    ssize_t bytes_read = _sock->read(buf, sizeof(buf));
+    ssize_t bytes_read = ::read(_conn_fd, buf, std::size(buf));
     if (bytes_read > 0)
     {
         _buf_recv->append(buf, bytes_read);
@@ -113,7 +97,7 @@ void Connection::readBlocking()
     else if (bytes_read == 0)
     {
         printf("read: EOF, server disconnected\n");
-        _state = State::Closed;
+        handleClose();
     }
     else if (errno == EINTR)
     {
@@ -122,16 +106,15 @@ void Connection::readBlocking()
     else
     {
         printf("Other error on server\n");
-        _state = State::Closed;
+        handleClose();
     }
 }
-void Connection::readNonBlocking()
+void TcpConnection::readNonBlocking()
 {
-    int sockfd = _sock->getFd();
     char buf[BUFF_SIZE];
     while (true)
     {
-        ssize_t bytes_read = _sock->read(buf, sizeof(buf));
+        ssize_t bytes_read = ::read(_conn_fd, buf, std::size(buf));
         if (bytes_read > 0)
         {
             _buf_recv->append(buf, bytes_read);
@@ -139,8 +122,8 @@ void Connection::readNonBlocking()
         }
         else if (bytes_read == 0)
         {
-            printf("EOF, client(%d) disconnected\n", sockfd);
-            _state = State::Closed;
+            printf("EOF, client(%d) disconnected\n", _conn_fd);
+            handleClose();
             break;
         }
         else if (errno == EINTR)
@@ -154,22 +137,21 @@ void Connection::readNonBlocking()
         }
         else
         {
-            printf("Other error on client(%d)\n", sockfd);
-            _state = State::Closed;
+            printf("Other error on client(%d)\n", _conn_fd);
+            handleClose();
             break;
         }
     }
 }
 
-void Connection::writeBlocking()
+void TcpConnection::writeBlocking()
 {
-    int sockfd = _sock->getFd();
     int data_left = _buf_send->size();
     int data_size = _buf_send->size();
     const char *buf = _buf_send->c_str();
     while (data_left > 0)
     {
-        ssize_t bytes_write = _sock->write(buf + data_size - data_left, data_left);
+        ssize_t bytes_write = ::write(_conn_fd, buf + data_size - data_left, data_left);
         if (bytes_write > 0)
         {
             data_left -= bytes_write;
@@ -183,21 +165,20 @@ void Connection::writeBlocking()
         else
         {
             printf("Other error on server\n");
-            _state = State::Closed;
+            handleClose();
             break;
         }
     }
 }
 
-void Connection::writeNonBlocking()
+void TcpConnection::writeNonBlocking()
 {
-    int sockfd = _sock->getFd();
     int data_left = _buf_send->size();
     int data_size = _buf_send->size();
     const char *buf = _buf_send->c_str();
     while (data_left > 0)
     {
-        ssize_t bytes_write = _sock->write(buf + data_size - data_left, data_left);
+        ssize_t bytes_write = ::write(_conn_fd, buf + data_size - data_left, data_left);
         if (bytes_write > 0)
         {
             data_left -= bytes_write;
@@ -214,11 +195,21 @@ void Connection::writeNonBlocking()
         }
         else
         {
-            printf("Other error on client(%d)\n", sockfd);
-            _state = State::Closed;
+            printf("Other error on client(%d)\n", _conn_fd);
+            handleClose();
             break;
         }
     }
+}
+
+void TcpConnection::connect(const char *ip, uint16_t port)
+{
+    sockaddr_in addr;
+    bzero(&addr, sizeof(sockaddr_in));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(ip);
+    addr.sin_port = htons(port);
+    erro(::connect(_conn_fd, (sockaddr *)&addr, sizeof(sockaddr)) == -1, "connect failed");
 }
 
 } // namespace WS
