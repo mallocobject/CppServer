@@ -12,4 +12,4 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(server server.cpp ${SRC_LIST})
 add_executable(client client.cpp ${SRC_LIST})
-add_executable(test test.cpp ${SRC_LIST})
+# add_executable(test test.cpp ${SRC_LIST})

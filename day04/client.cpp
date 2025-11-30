@@ -1,4 +1,5 @@
 #include "buffer.h"
+#include "connection.h"
 #include "src/inet_addr.h"
 #include "src/socket.h"
 #include <cstdio>
@@ -17,44 +18,31 @@ using namespace WS;
 int main()
 {
 
-    Socket sock;
+    Socket *sock = new Socket;
     InetAddr addr("127.0.0.1", 8888);
 
-    sock.connect(&addr);
+    sock->connect(&addr);
 
-    char buf[BUFF_SIZE];
-
-    Buffer send_buf;
-    Buffer recv_buf;
+    Connection conn(nullptr, sock, false);
 
     while (true)
     {
         printf("client: ");
-        send_buf.getLine();
-
-        sock.write(send_buf.c_str(), send_buf.size());
-
-        int already_read = 0;
-
-        while (true)
+        conn.typeLineSendBuffer();
+        conn.write();
+        if (conn.getState() == Connection::State::Closed)
         {
-            ssize_t bytes_read = sock.read(buf, sizeof(buf));
-            if (bytes_read > 0)
-            {
-                recv_buf.append(buf, bytes_read);
-                already_read += bytes_read;
-            }
-            else if (bytes_read == 0)
-            {
-                printf("server closed connection\n");
-                exit(EXIT_SUCCESS);
-            }
-            if (already_read >= send_buf.size())
-            {
-                printf("server: %s\n", recv_buf.c_str());
-                break;
-            }
+            conn.close();
+            break;
         }
-        recv_buf.clear();
+        conn.read();
+        if (conn.getState() == Connection::State::Closed)
+        {
+            conn.close();
+            break;
+        }
+        printf("Server: %s\n", conn.getMsg());
     }
+
+    return 0;
 }

@@ -26,7 +26,7 @@ class Channel
     void handleEvent();
     void setCallback(std::function<void()> cb);
 
-    void enableRead(bool is_server = false);
+    void enableRead(bool is_ET = true);
     int getFd() const
     {
         return _fd;

@@ -28,7 +28,7 @@ class Socket
     void connect(InetAddr *inet_addr);
     void close();
 
-    void write(const char *buf, size_t nbytes);
+    ssize_t write(const char *buf, size_t nbytes);
     ssize_t read(char *buf, size_t nbytes);
 
     int getFd() const

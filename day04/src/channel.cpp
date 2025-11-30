@@ -6,15 +6,16 @@
 namespace WS
 {
 
-void Channel::enableRead(bool is_server)
+void Channel::enableRead(bool is_ET)
 {
-    if (is_server)
+
+    if (is_ET)
     {
-        _op = EPOLLIN | EPOLLPRI;
+        _op = EPOLLIN | EPOLLET;
     }
     else
     {
-        _op = EPOLLIN | EPOLLET;
+        _op = EPOLLIN | EPOLLPRI;
     }
     _loop->updateChannel(this);
 }

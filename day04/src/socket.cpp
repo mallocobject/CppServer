@@ -50,9 +50,9 @@ void Socket::close()
     erro(::close(_fd) == -1, "close failed");
 }
 
-void Socket::write(const char *buf, size_t nbytes)
+ssize_t Socket::write(const char *buf, size_t nbytes)
 {
-    erro(::write(_fd, buf, nbytes) == -1, "write failed");
+    return ::write(_fd, buf, nbytes);
 }
 
 ssize_t Socket::read(char *buf, size_t nbytes)

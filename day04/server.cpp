@@ -2,6 +2,7 @@
 #include "acceptor.h"
 #include "connection.h"
 #include "event_loop.h"
+#include "socket.h"
 #include "src/channel.h"
 #include <cstdio>
 
@@ -15,8 +16,17 @@ int main()
     EventLoop *loop = new EventLoop;
     Server *server = new Server(loop);
     server->onConnect([](Connection *conn) {
-        printf("ok\n");
-        conn->echo();
+        conn->read();
+        if (conn->getState() == Connection::State::Closed)
+        {
+            conn->close();
+        }
+        else if (conn->getState() == Connection::State::Connected)
+        {
+            printf("Client(%d): %s\n", conn->getSocket()->getFd(), conn->getMsg());
+            conn->setMsg(conn->getMsg());
+            conn->write();
+        }
     });
 
     loop->loop();

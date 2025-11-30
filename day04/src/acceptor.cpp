@@ -21,7 +21,7 @@ Acceptor::Acceptor(EventLoop *loop) : _loop(loop)
     _ch = new Channel(loop, _sock->getFd());
     std::function<void()> cb = std::bind(&Acceptor::acceptConn, this);
     _ch->setCallback(cb);
-    _ch->enableRead(true);
+    _ch->enableRead(false);
 }
 
 Acceptor::~Acceptor()
@@ -48,7 +48,7 @@ void Acceptor::acceptConn()
 {
     InetAddr clnt_addr;
     Socket *clnt_sock = new Socket(_sock->accept(&clnt_addr));
-    printf("new client fd %d! IP: %s Port: %d\n", clnt_sock->getFd(), clnt_addr.getIP(),
+    printf("new client(%d) IP: %s Port: %d\n", clnt_sock->getFd(), clnt_addr.getIP(),
            clnt_addr.getPort());
     clnt_sock->set_non_blocking();
     _cb(clnt_sock);
