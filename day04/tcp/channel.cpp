@@ -3,12 +3,32 @@
 #include "event_loop.h"
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <sys/epoll.h>
 
 namespace WS
 {
 
 void Channel::handleEvent()
+{
+    if (_tied)
+    {
+        std::shared_ptr<void> guard = _tie.lock();
+        handleEventWithGuard();
+    }
+    else
+    {
+        handleEventWithGuard();
+    }
+}
+
+void Channel::tie(const std::shared_ptr<void> &ptr)
+{
+    _tied = true;
+    _tie = ptr;
+}
+
+void Channel::handleEventWithGuard()
 {
     if (_ready_events & (EPOLLIN | EPOLLPRI | EPOLLRDHUP))
     {

@@ -5,6 +5,7 @@
 #include "utils.h"
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <unistd.h>
 namespace WS
 {
@@ -19,26 +20,31 @@ class Channel
     bool _in_epoll;
     std::function<void()> _read_callback;
     std::function<void()> _write_callback;
+    std::weak_ptr<void> _tie;
+    bool _tied;
 
   public:
     DISALLOW_DEFAULT(Channel)
     DISALLOW_COPY_AND_MOVE(Channel)
 
     Channel(int fd, EventLoop *loop)
-        : _fd(fd), _loop(loop), _listen_events(0), _ready_events(0), _in_epoll(false)
+        : _fd(fd), _loop(loop), _listen_events(0), _ready_events(0), _in_epoll(false), _tied(false)
     {
     }
 
     ~Channel()
     {
-        if (_fd != -1)
-        {
-            erro(::close(_fd) == -1, "close failed");
-            _fd = -1;
-        }
+        // if (_fd != -1)
+        // {
+        //     erro(::close(_fd) == -1, "close failed");
+        //     _fd = -1;
+        // }
     }
 
+    void tie(const std::shared_ptr<void> &ptr);
+
     void handleEvent();
+
     void enableRead(bool is_ET = true);
     void enableWrite();
     void disableWrite();
@@ -80,6 +86,9 @@ class Channel
 
         _write_callback = std::move(cb);
     }
+
+  protected:
+    void handleEventWithGuard();
 };
 } // namespace WS
 

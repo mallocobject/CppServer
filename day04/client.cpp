@@ -69,11 +69,11 @@ int main()
     }
 
     // // 关闭连接
-    // close(sockfd);
-    // std::cout << "Connection closed" << std::endl;
+    close(sockfd);
+    std::cout << "Connection closed" << std::endl;
 
-    while (true)
-    {
-    }
+    // while (true)
+    // {
+    // }
     return 0;
 }

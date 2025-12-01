@@ -63,7 +63,7 @@ void Epoll::deleteChannel(Channel *ch)
 {
     if (ch->inEpoll())
     {
-        erro(epoll_ctl(_epfd, EPOLL_CTL_MOD, ch->getFd(), nullptr) == -1, "delete fd failed");
+        erro(epoll_ctl(_epfd, EPOLL_CTL_DEL, ch->getFd(), nullptr) == -1, "delete fd failed");
         ch->setInEpoll(false);
     }
 }

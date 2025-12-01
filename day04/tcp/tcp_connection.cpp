@@ -2,6 +2,7 @@
 #include "buffer.h"
 #include "channel.h"
 // #include "utils.h"
+#include "event_loop.h"
 #include <arpa/inet.h>
 #include <cassert>
 #include <cerrno>
@@ -20,14 +21,13 @@ namespace WS
 {
 
 TcpConnection::TcpConnection(EventLoop *loop, int conn_fd, int conn_id, bool is_non_blocking)
-    : _loop(loop), _conn_fd(conn_fd), _conn_id(conn_id), _state(State::Connected),
+    : _loop(loop), _conn_fd(conn_fd), _conn_id(conn_id), _state(State::DisConnected),
       _is_non_blocking(is_non_blocking)
 {
     if (loop != nullptr)
     {
         _ch = std::make_unique<Channel>(conn_fd, _loop);
         _ch->setReadCallback(std::bind(&TcpConnection::handleMessage, this));
-        _ch->enableRead();
     }
     _buf_recv = std::make_unique<Buffer>();
     _buf_send = std::make_unique<Buffer>();
@@ -35,7 +35,27 @@ TcpConnection::TcpConnection(EventLoop *loop, int conn_fd, int conn_id, bool is_
 
 TcpConnection::~TcpConnection()
 {
-    erro(::close(_conn_fd) == -1, "close failed");
+    if (_conn_fd != -1)
+    {
+        erro(::close(_conn_fd) == -1, "close failed");
+        _conn_fd = -1;
+    }
+}
+
+void TcpConnection::connecntionEstablished()
+{
+    _state = TcpConnection::State::Connected;
+    _ch->tie(shared_from_this());
+    _ch->enableRead();
+    if (_on_connect)
+    {
+        _on_connect(shared_from_this());
+    }
+}
+
+void TcpConnection::connectionDestructor()
+{
+    _loop->deleteChannel(_ch.get());
 }
 
 void TcpConnection::send(const char *msg)

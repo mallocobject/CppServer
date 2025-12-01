@@ -48,24 +48,29 @@ void TcpServer::handleNewConnection(int fd)
 {
     assert(fd != -1);
     int random = fd % _vec_sub_reactors.size();
-    TcpConnection *conn = new TcpConnection(_vec_sub_reactors[random].get(), fd, _next_id++);
-    std::function<void(int)> cb = std::bind(&TcpServer::handleClose, this, std::placeholders::_1);
+    auto conn = std::make_shared<TcpConnection>(_vec_sub_reactors[random].get(), fd, _next_id++);
+    std::function<void(const std::shared_ptr<TcpConnection> &)> cb =
+        std::bind(&TcpServer::handleClose, this, std::placeholders::_1);
     conn->setCloseCallback(cb);
+    conn->setConnectionCallback(_on_connect_cb);
     conn->setMessageCallback(_on_message_cb);
-    // conn->setConnectionCallback(_on_connect_cb);
     _map_conns[fd] = conn;
+
+    conn->connecntionEstablished();
 }
 
-void TcpServer::handleClose(int fd)
+void TcpServer::handleClose(const std::shared_ptr<TcpConnection> &conn)
 {
-    decltype(_map_conns)::iterator iter = _map_conns.find(fd);
-    assert(iter != _map_conns.end());
+    _main_reactor->runOneFunc(std::bind(&TcpServer::handleCloseInLoop, this, conn));
+}
 
-    TcpConnection *conn = iter->second;
+void TcpServer::handleCloseInLoop(const std::shared_ptr<TcpConnection> &conn)
+{
+    decltype(_map_conns)::iterator iter = _map_conns.find(conn->getFd());
+    assert(iter != _map_conns.end());
     _map_conns.erase(iter);
     // delete conn;
-    conn = nullptr;
-    ::close(fd);
+    conn->getEventLoop()->queueOneFunc(std::bind(&TcpConnection::connectionDestructor, conn));
 }
 
 } // namespace WS

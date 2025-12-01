@@ -9,7 +9,7 @@ namespace WS
 class EventLoop;
 class Channel;
 class Buffer;
-class TcpConnection
+class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 {
   public:
     enum State
@@ -23,9 +23,9 @@ class TcpConnection
     EventLoop *_loop;
     int _conn_fd;
     int _conn_id;
-    std::function<void(int)> _on_close;
-    std::function<void(TcpConnection *)> _on_message;
-    // std::function<void(TcpConnection *)> _on_connect;
+    std::function<void(const std::shared_ptr<TcpConnection> &)> _on_close;
+    std::function<void(const std::shared_ptr<TcpConnection> &)> _on_message;
+    std::function<void(const std::shared_ptr<TcpConnection> &)> _on_connect;
 
     std::unique_ptr<Channel> _ch;
     std::unique_ptr<Buffer> _buf_recv;
@@ -40,20 +40,25 @@ class TcpConnection
     TcpConnection(EventLoop *loop, int conn_fd, int conn_id, bool is_non_blocking = true);
     ~TcpConnection();
 
-    void setCloseCallback(const std::function<void(int)> &cb)
+    void connecntionEstablished();
+
+    void connectionDestructor();
+
+    void setCloseCallback(const std::function<void(const std::shared_ptr<TcpConnection> &)> &cb)
     {
         _on_close = std::move(cb);
     }
 
-    void setMessageCallback(const std::function<void(TcpConnection *)> &cb)
+    void setMessageCallback(const std::function<void(const std::shared_ptr<TcpConnection> &)> &cb)
     {
         _on_message = std::move(cb);
     }
 
-    // void setConnectionCallback(const std::function<void(TcpConnection *)> &cb)
-    // {
-    //     _on_connect = std::move(cb);
-    // }
+    void setConnectionCallback(
+        const std::function<void(const std::shared_ptr<TcpConnection> &)> &cb)
+    {
+        _on_connect = std::move(cb);
+    }
 
     void handleMessage()
     {
@@ -61,7 +66,7 @@ class TcpConnection
         read();
         if (_on_message)
         {
-            _on_message(this);
+            _on_message(shared_from_this());
         }
     }
 
@@ -72,7 +77,7 @@ class TcpConnection
             _state = TcpConnection::State::DisConnected;
             if (_on_close)
             {
-                _on_close(_conn_fd);
+                _on_close(shared_from_this());
             }
         }
     }
