@@ -68,7 +68,7 @@ int main()
         perror("recv failed");
     }
 
-    // // 关闭连接
+    // 关闭连接
     close(sockfd);
     std::cout << "Connection closed" << std::endl;
 

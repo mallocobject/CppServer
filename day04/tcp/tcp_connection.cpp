@@ -35,11 +35,6 @@ TcpConnection::TcpConnection(EventLoop *loop, int conn_fd, int conn_id, bool is_
 
 TcpConnection::~TcpConnection()
 {
-    if (_conn_fd != -1)
-    {
-        erro(::close(_conn_fd) == -1, "close failed");
-        _conn_fd = -1;
-    }
 }
 
 void TcpConnection::connecntionEstablished()

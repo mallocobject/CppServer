@@ -1,7 +1,7 @@
 #ifndef __EVENT_LOOP_H__
 #define __EVENT_LOOP_H__
 
-#include "common.h"
+#include "../base/common.h"
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
@@ -17,12 +17,12 @@
 namespace WS
 {
 
-class Epoll;
+class Epoller;
 class Channel;
 class EventLoop
 {
   protected:
-    std::unique_ptr<Epoll> _ep;
+    std::unique_ptr<Epoller> _ep;
     std::vector<std::function<void()>> _todo_list;
     std::mutex _mtx;
     int _wake_fd;

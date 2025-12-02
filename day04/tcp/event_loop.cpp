@@ -1,6 +1,6 @@
 #include "event_loop.h"
 #include "channel.h"
-#include "epoll.h"
+#include "epoller.h"
 #include "sys/eventfd.h"
 #include <functional>
 #include <memory>
@@ -13,7 +13,7 @@ namespace WS
 {
 EventLoop::EventLoop() : _calling_func(false)
 {
-    _ep = std::make_unique<Epoll>();
+    _ep = std::make_unique<Epoller>();
     _wake_fd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     _wake_ch = std::make_unique<Channel>(_wake_fd, this);
 

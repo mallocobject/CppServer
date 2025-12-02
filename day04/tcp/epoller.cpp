@@ -1,6 +1,6 @@
-#include "epoll.h"
+#include "epoller.h"
+#include "../base/utils.h"
 #include "channel.h"
-#include "utils.h"
 #include <strings.h>
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -10,14 +10,14 @@
 
 namespace WS
 {
-Epoll::Epoll() : _events(new epoll_event[MAX_EVENTS])
+Epoller::Epoller() : _events(new epoll_event[MAX_EVENTS])
 {
     _epfd = epoll_create1(0);
     erro(_epfd == -1, "epoll create failed");
     _vec_chs.resize(MAX_EVENTS, nullptr);
 }
 
-Epoll::~Epoll()
+Epoller::~Epoller()
 {
 
     if (_epfd != -1)
@@ -29,7 +29,7 @@ Epoll::~Epoll()
     _events = nullptr;
 }
 
-std::vector<Channel *> Epoll::poll(int timeout)
+std::vector<Channel *> Epoller::poll(int timeout)
 {
 
     int nfds = epoll_wait(_epfd, _events, MAX_EVENTS, timeout);
@@ -42,16 +42,16 @@ std::vector<Channel *> Epoll::poll(int timeout)
     return std::vector<Channel *>(_vec_chs.begin(), _vec_chs.begin() + nfds);
 }
 
-void Epoll::updateChannel(Channel *ch)
+void Epoller::updateChannel(Channel *ch)
 {
     int fd = ch->getFd();
     epoll_event ev;
     ev.events = ch->getListenEvents();
     ev.data.ptr = ch;
-    if (!ch->inEpoll())
+    if (!ch->inEpoller())
     {
         erro(epoll_ctl(_epfd, EPOLL_CTL_ADD, fd, &ev) == -1, "add fd failed");
-        ch->setInEpoll(true);
+        ch->setInEpoller(true);
     }
     else
     {
@@ -59,12 +59,12 @@ void Epoll::updateChannel(Channel *ch)
     }
 }
 
-void Epoll::deleteChannel(Channel *ch)
+void Epoller::deleteChannel(Channel *ch)
 {
-    if (ch->inEpoll())
+    if (ch->inEpoller())
     {
         erro(epoll_ctl(_epfd, EPOLL_CTL_DEL, ch->getFd(), nullptr) == -1, "delete fd failed");
-        ch->setInEpoll(false);
+        ch->setInEpoller(false);
     }
 }
 

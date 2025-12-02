@@ -1,14 +1,14 @@
-#ifndef __EPOLL_H__
-#define __EPOLL_H__
+#ifndef __EPOLLER_H__
+#define __EPOLLER_H__
 
-#include "common.h"
+#include "../base/common.h"
 #include <fcntl.h>
 #include <sys/epoll.h>
 #include <vector>
 namespace WS
 {
 class Channel;
-class Epoll
+class Epoller
 {
   protected:
     int _epfd;
@@ -16,10 +16,10 @@ class Epoll
     std::vector<Channel *> _vec_chs;
 
   public:
-    DISALLOW_COPY_AND_MOVE(Epoll)
+    DISALLOW_COPY_AND_MOVE(Epoller)
 
-    Epoll();
-    ~Epoll();
+    Epoller();
+    ~Epoller();
 
     std::vector<Channel *> poll(int timeout = -1);
 

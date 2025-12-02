@@ -31,11 +31,6 @@ Acceptor::Acceptor(EventLoop *loop, const char *ip, uint16_t port) : _loop(loop)
 Acceptor::~Acceptor()
 {
     _loop->deleteChannel(_ch.get());
-    if (_fd != -1)
-    {
-        erro(::close(_fd) == -1, "close failed");
-        _fd = -1;
-    }
 }
 
 void Acceptor::setNewConnectionCallback(const std::function<void(int)> &cb)

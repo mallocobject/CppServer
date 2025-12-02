@@ -1,8 +1,8 @@
 #ifndef __CHANNEL_H__
 #define __CHANNEL_H__
 
-#include "common.h"
-#include "utils.h"
+#include "../base/common.h"
+#include "../base/utils.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -34,11 +34,11 @@ class Channel
 
     ~Channel()
     {
-        // if (_fd != -1)
-        // {
-        //     erro(::close(_fd) == -1, "close failed");
-        //     _fd = -1;
-        // }
+        if (_fd != -1)
+        {
+            erro(::close(_fd) == -1, "close failed");
+            _fd = -1;
+        }
     }
 
     void tie(const std::shared_ptr<void> &ptr);
@@ -64,12 +64,12 @@ class Channel
         return _ready_events;
     }
 
-    bool inEpoll() const
+    bool inEpoller() const
     {
         return _in_epoll;
     }
 
-    void setInEpoll(bool in_epoll)
+    void setInEpoller(bool in_epoll)
     {
         _in_epoll = in_epoll;
     }

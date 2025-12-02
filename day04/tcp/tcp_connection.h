@@ -1,7 +1,7 @@
 #ifndef __TcpConnection_H__
 #define __TcpConnection_H__
 
-#include "common.h"
+#include "../base/common.h"
 #include <functional>
 #include <memory>
 namespace WS

@@ -1,8 +1,8 @@
 #ifndef __THREAD_POOL_H__
 #define __THREAD_POOL_H__
 
-#include "common.h"
-#include "utils.h"
+#include "../base/common.h"
+#include "../base/utils.h"
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>
