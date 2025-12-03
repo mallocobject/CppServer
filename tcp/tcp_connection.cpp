@@ -39,7 +39,7 @@ TcpConnection::~TcpConnection()
 
 void TcpConnection::connecntionEstablished()
 {
-    _state = TcpConnection::State::Connected;
+    _state = State::Connected;
     _ch->tie(shared_from_this());
     _ch->enableRead();
     if (_on_connect)

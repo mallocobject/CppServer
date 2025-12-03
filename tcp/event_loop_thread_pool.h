@@ -28,7 +28,7 @@ class EventLoopThreadPool
 
     ~EventLoopThreadPool();
 
-    void start();
+    void startup();
     EventLoop *getNextLoop()
     {
         EventLoop *_loop = _main_loop;

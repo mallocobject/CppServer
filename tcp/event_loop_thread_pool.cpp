@@ -14,7 +14,7 @@ EventLoopThreadPool::~EventLoopThreadPool()
 {
 }
 
-void EventLoopThreadPool::start()
+void EventLoopThreadPool::startup()
 {
     for (int i = 0; i < _num_ths; i++)
     {

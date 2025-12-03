@@ -19,7 +19,7 @@ int main()
         }
     });
 
-    tcp_server->start();
+    tcp_server->startup();
 
     delete tcp_server;
 

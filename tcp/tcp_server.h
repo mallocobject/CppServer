@@ -31,7 +31,7 @@ class TcpServer
     TcpServer(const char *ip, uint16_t port);
     ~TcpServer();
 
-    void start();
+    void startup();
 
     void setConnectionCallback(
         const std::function<void(const std::shared_ptr<TcpConnection> &)> &cb)

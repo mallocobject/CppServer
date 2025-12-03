@@ -29,9 +29,9 @@ TcpServer::~TcpServer()
 {
 }
 
-void TcpServer::start()
+void TcpServer::startup()
 {
-    _sub_reactor_pool->start();
+    _sub_reactor_pool->startup();
     _main_reactor->loop();
 }
 
