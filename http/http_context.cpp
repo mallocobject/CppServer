@@ -170,7 +170,6 @@ bool HttpContext::parseRequest(const char *begin_, int size)
 
         default: {
             _http_parse_state = HttpParseState::Invalid;
-            break;
         }
         }
 
