@@ -1,27 +1,73 @@
-#include "tcp_connection.h"
-#include "tcp_server.h"
-#include <cstdio>
-#include <memory.h>
-
-#define MAX_EVENTS 1024
-#define BUFF_SIZE 1024
+#include "../http/http_request.h"
+#include "../http/http_response.h"
+#include "../http/http_server.h"
+#include <memory>
+#include <string>
 
 using namespace WS;
 
-int main()
+const std::string html = " <font color=\"red\">This is html!</font> ";
+void HttpResponseCallback(const HttpRequest& request, HttpResponse* response)
 {
-    TcpServer *tcp_server = new TcpServer("127.0.0.1", 8888);
-    tcp_server->setMessageCallback([](const std::shared_ptr<TcpConnection> &conn) {
-        if (conn->State() == TcpConnection::State::Connected)
-        {
-            printf("Client(%d): %s\n", conn->getFd(), conn->getMsg());
-            conn->send(conn->getMsg());
-        }
-    });
+    if (request.getMethod() != HttpRequest::Method::GET)
+    {
+	response->setStatusCode(HttpResponse::HttpStateCode::BadRequest_400);
+	response->setStatusMessage("Bad Request");
+	response->setCloseConnection(true);
+    }
 
-    tcp_server->startup();
+    else
+    {
+	std::string url = request.getURL();
+	if (url == "/")
+	{
+	    response->setStatusCode(HttpResponse::HttpStateCode::OK_200);
+	    response->setBody(html);
+	    response->setContentType("text/html");
+	}
+	else if (url == "/hello")
+	{
+	    response->setStatusCode(HttpResponse::HttpStateCode::OK_200);
+	    response->setBody("hello world\n");
+	    response->setContentType("text/plain");
+	}
+	else if (url == "/favicon.ico")
+	{
+	    response->setStatusCode(HttpResponse::HttpStateCode::OK_200);
+	}
+	else
+	{
+	    response->setStatusCode(HttpResponse::HttpStateCode::NotFound_404);
+	    response->setStatusMessage("Not Found");
+	    response->setBody("Sorry Not Found\n");
+	    response->setCloseConnection(true);
+	}
+    }
+    return;
+}
 
-    delete tcp_server;
+int main(int argc, char* argv[])
+{
+    int port;
+    if (argc <= 1)
+    {
+	port = 8888;
+    }
+    else if (argc == 2)
+    {
+	port = atoi(argv[1]);
+    }
+    else
+    {
+	printf("error");
+	exit(0);
+    }
+
+    std::unique_ptr<HttpServer> server =
+	std::make_unique<HttpServer>("127.0.0.1", port);
+    server->setHttpCallback(HttpResponseCallback);
+
+    server->startup();
 
     return 0;
 }

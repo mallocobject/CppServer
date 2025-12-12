@@ -2,13 +2,16 @@
 #define __TcpConnection_H__
 
 #include "../base/common.h"
+#include <cstddef>
 #include <functional>
 #include <memory>
+
 namespace WS
 {
 class EventLoop;
 class Channel;
 class Buffer;
+class HttpContext;
 class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 {
   public:
@@ -20,16 +23,17 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
     };
 
   protected:
-    EventLoop *_loop;
+    EventLoop* _loop;
     int _conn_fd;
     int _conn_id;
-    std::function<void(const std::shared_ptr<TcpConnection> &)> _on_close;
-    std::function<void(const std::shared_ptr<TcpConnection> &)> _on_message;
-    std::function<void(const std::shared_ptr<TcpConnection> &)> _on_connect;
+    std::function<void(const std::shared_ptr<TcpConnection>&)> _on_close;
+    std::function<void(const std::shared_ptr<TcpConnection>&)> _on_message;
+    std::function<void(const std::shared_ptr<TcpConnection>&)> _on_connect;
 
     std::unique_ptr<Channel> _ch;
     std::unique_ptr<Buffer> _buf_recv;
     std::unique_ptr<Buffer> _buf_send;
+    std::unique_ptr<HttpContext> _http_context;
     State _state;
     bool _is_non_blocking;
 
@@ -37,25 +41,28 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
     DISALLOW_DEFAULT(TcpConnection)
     DISALLOW_COPY_AND_MOVE(TcpConnection)
 
-    TcpConnection(EventLoop *loop, int conn_fd, int conn_id, bool is_non_blocking = true);
+    TcpConnection(EventLoop* loop, int conn_fd, int conn_id,
+                  bool is_non_blocking = true);
     ~TcpConnection();
 
     void connecntionEstablished();
 
     void connectionDestructor();
 
-    void setCloseCallback(const std::function<void(const std::shared_ptr<TcpConnection> &)> &cb)
+    void setCloseCallback(
+        const std::function<void(const std::shared_ptr<TcpConnection>&)>& cb)
     {
         _on_close = std::move(cb);
     }
 
-    void setMessageCallback(const std::function<void(const std::shared_ptr<TcpConnection> &)> &cb)
+    void setMessageCallback(
+        const std::function<void(const std::shared_ptr<TcpConnection>&)>& cb)
     {
         _on_message = std::move(cb);
     }
 
     void setConnectionCallback(
-        const std::function<void(const std::shared_ptr<TcpConnection> &)> &cb)
+        const std::function<void(const std::shared_ptr<TcpConnection>&)>& cb)
     {
         _on_connect = std::move(cb);
     }
@@ -82,34 +89,25 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
         }
     }
 
-    void send(const char *msg);
+    void send(const char* msg);
     void read();
     void write();
 
-    EventLoop *getEventLoop() const
-    {
-        return _loop;
-    }
+    EventLoop* getEventLoop() const { return _loop; }
 
-    int getId() const
-    {
-        return _conn_id;
-    }
+    HttpContext* getHttpContext() const;
 
-    int getFd() const
-    {
-        return _conn_fd;
-    }
+    int getId() const { return _conn_id; }
 
-    State State() const
-    {
-        return _state;
-    }
+    int getFd() const { return _conn_fd; }
+
+    State State() const { return _state; }
 
     void typeLineSendBuffer();
 
-    const char *getMsg() const;
-    void setMsg(const char *msg);
+    const char* getMsg() const;
+    size_t getMsgLen() const;
+    void setMsg(const char* msg);
 
   protected:
     void readBlocking();
@@ -118,7 +116,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
     void writeBlocking();
     void writeNonBlocking();
 
-    void connect(const char *ip, uint16_t port);
+    void connect(const char* ip, uint16_t port);
 };
 } // namespace WS
 

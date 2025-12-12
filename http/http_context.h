@@ -8,6 +8,7 @@ namespace WS
 class HttpRequest;
 class HttpContext
 {
+  public:
     enum HttpParseState
     {
         Invalid,
@@ -55,10 +56,10 @@ class HttpContext
     HttpContext();
     ~HttpContext();
 
-    bool parseRequest(const char *begin_, int size);
+    bool parseRequest(const char* begin_, int size);
     void resetHttpContextState();
     HttpParseState getHttpParseState() const;
-    HttpRequest *getHttpRequest();
+    HttpRequest* getHttpRequest();
 };
 } // namespace WS
 

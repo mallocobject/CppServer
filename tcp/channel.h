@@ -13,7 +13,7 @@ class EventLoop;
 class Channel
 {
   protected:
-    EventLoop *_loop;
+    EventLoop* _loop;
     int _fd;
     uint32_t _listen_events;
     uint32_t _ready_events;
@@ -27,8 +27,9 @@ class Channel
     DISALLOW_DEFAULT(Channel)
     DISALLOW_COPY_AND_MOVE(Channel)
 
-    Channel(int fd, EventLoop *loop)
-        : _fd(fd), _loop(loop), _listen_events(0), _ready_events(0), _in_epoll(false), _tied(false)
+    Channel(int fd, EventLoop* loop)
+        : _fd(fd), _loop(loop), _listen_events(0), _ready_events(0),
+          _in_epoll(false), _tied(false)
     {
     }
 
@@ -41,7 +42,7 @@ class Channel
         }
     }
 
-    void tie(const std::shared_ptr<void> &ptr);
+    void tie(const std::shared_ptr<void>& ptr);
 
     void handleEvent();
 
@@ -49,41 +50,24 @@ class Channel
     void enableWrite();
     void disableWrite();
 
-    int getFd() const
-    {
-        return _fd;
-    }
+    int getFd() const { return _fd; }
 
-    uint32_t getListenEvents() const
-    {
-        return _listen_events;
-    }
+    uint32_t getListenEvents() const { return _listen_events; }
 
-    uint32_t getReadyEvents() const
-    {
-        return _ready_events;
-    }
+    uint32_t getReadyEvents() const { return _ready_events; }
 
-    bool inEpoller() const
-    {
-        return _in_epoll;
-    }
+    bool inEpoller() const { return _in_epoll; }
 
-    void setInEpoller(bool in_epoll)
-    {
-        _in_epoll = in_epoll;
-    }
+    void setInEpoller(bool in_epoll) { _in_epoll = in_epoll; }
 
     void setReadyEvents(uint32_t ev);
 
-    void setReadCallback(const std::function<void()> &cb)
+    void setReadCallback(const std::function<void()>& cb)
     {
-
         _read_callback = std::move(cb);
     }
-    void setWriteCallback(const std::function<void()> &cb)
+    void setWriteCallback(const std::function<void()>& cb)
     {
-
         _write_callback = std::move(cb);
     }
 

@@ -2,6 +2,7 @@
 #include "buffer.h"
 #include "channel.h"
 // #include "utils.h"
+#include "../http/http_context.h"
 #include "event_loop.h"
 #include <arpa/inet.h>
 #include <cassert>
@@ -20,10 +21,12 @@
 namespace WS
 {
 
-TcpConnection::TcpConnection(EventLoop *loop, int conn_fd, int conn_id, bool is_non_blocking)
-    : _loop(loop), _conn_fd(conn_fd), _conn_id(conn_id), _state(State::DisConnected),
-      _is_non_blocking(is_non_blocking)
+TcpConnection::TcpConnection(EventLoop* loop, int conn_fd, int conn_id,
+                             bool is_non_blocking)
+    : _loop(loop), _conn_fd(conn_fd), _conn_id(conn_id),
+      _state(State::DisConnected), _is_non_blocking(is_non_blocking)
 {
+    // for client
     if (loop != nullptr)
     {
         _ch = std::make_unique<Channel>(conn_fd, _loop);
@@ -31,11 +34,10 @@ TcpConnection::TcpConnection(EventLoop *loop, int conn_fd, int conn_id, bool is_
     }
     _buf_recv = std::make_unique<Buffer>();
     _buf_send = std::make_unique<Buffer>();
+    _http_context = std::make_unique<HttpContext>();
 }
 
-TcpConnection::~TcpConnection()
-{
-}
+TcpConnection::~TcpConnection() {}
 
 void TcpConnection::connecntionEstablished()
 {
@@ -48,12 +50,9 @@ void TcpConnection::connecntionEstablished()
     }
 }
 
-void TcpConnection::connectionDestructor()
-{
-    _loop->deleteChannel(_ch.get());
-}
+void TcpConnection::connectionDestructor() { _loop->deleteChannel(_ch.get()); }
 
-void TcpConnection::send(const char *msg)
+void TcpConnection::send(const char* msg)
 {
     setMsg(msg);
     write();
@@ -85,20 +84,13 @@ void TcpConnection::write()
     _buf_send->clear();
 }
 
-void TcpConnection::typeLineSendBuffer()
-{
-    _buf_send->getLine();
-}
+void TcpConnection::typeLineSendBuffer() { _buf_send->getLine(); }
 
-const char *TcpConnection::getMsg() const
-{
-    return _buf_recv->c_str();
-}
+const char* TcpConnection::getMsg() const { return _buf_recv->c_str(); }
 
-void TcpConnection::setMsg(const char *msg)
-{
-    _buf_send->setBuf(msg);
-}
+size_t TcpConnection::getMsgLen() const { return _buf_recv->size(); }
+
+void TcpConnection::setMsg(const char* msg) { _buf_send->setBuf(msg); }
 
 void TcpConnection::readBlocking()
 {
@@ -163,10 +155,11 @@ void TcpConnection::writeBlocking()
 {
     int data_left = _buf_send->size();
     int data_size = _buf_send->size();
-    const char *buf = _buf_send->c_str();
+    const char* buf = _buf_send->c_str();
     while (data_left > 0)
     {
-        ssize_t bytes_write = ::write(_conn_fd, buf + data_size - data_left, data_left);
+        ssize_t bytes_write =
+            ::write(_conn_fd, buf + data_size - data_left, data_left);
         if (bytes_write > 0)
         {
             data_left -= bytes_write;
@@ -190,10 +183,11 @@ void TcpConnection::writeNonBlocking()
 {
     int data_left = _buf_send->size();
     int data_size = _buf_send->size();
-    const char *buf = _buf_send->c_str();
+    const char* buf = _buf_send->c_str();
     while (data_left > 0)
     {
-        ssize_t bytes_write = ::write(_conn_fd, buf + data_size - data_left, data_left);
+        ssize_t bytes_write =
+            ::write(_conn_fd, buf + data_size - data_left, data_left);
         if (bytes_write > 0)
         {
             data_left -= bytes_write;
@@ -217,14 +211,20 @@ void TcpConnection::writeNonBlocking()
     }
 }
 
-void TcpConnection::connect(const char *ip, uint16_t port)
+void TcpConnection::connect(const char* ip, uint16_t port)
 {
     sockaddr_in addr;
     bzero(&addr, sizeof(sockaddr_in));
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr(ip);
     addr.sin_port = htons(port);
-    erro(::connect(_conn_fd, (sockaddr *)&addr, sizeof(sockaddr)) == -1, "connect failed");
+    erro(::connect(_conn_fd, (sockaddr*)&addr, sizeof(sockaddr)) == -1,
+         "connect failed");
+}
+
+HttpContext* TcpConnection::getHttpContext() const
+{
+    return _http_context.get();
 }
 
 } // namespace WS

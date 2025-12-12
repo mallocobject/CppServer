@@ -16,6 +16,5 @@ aux_source_directory(base SRC_LIST1)
 aux_source_directory(tcp SRC_LIST2)
 aux_source_directory(http SRC_LIST3)
 
-add_executable(server ./test/server.cpp ${SRC_LIST1} ${SRC_LIST2})
-add_executable(client ./test/client.cpp)
-add_executable(test_http ./test/test_http.cpp ${SRC_LIST3})
+add_executable(server ./test/server.cpp ${SRC_LIST1} ${SRC_LIST2} ${SRC_LIST3})
+add_executable(client ./test/client.cpp ${SRC_LIST1} ${SRC_LIST2} ${SRC_LIST3})
